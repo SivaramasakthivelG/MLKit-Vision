@@ -6,15 +6,19 @@ import android.util.Log
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
 import com.example.mlkitvision.data.FaceDataStore
-import com.example.mlkitvision.data.FaceDataStore.user_face_id
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.face.FaceDetector
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 class FaceAnalyzer @Inject constructor(private val detector: FaceDetector,private val context: Context) : ImageAnalysis.Analyzer {
+
+    private val _detectedFaceCount = MutableStateFlow(0)
+    val detectedFaceCount = _detectedFaceCount
 
     @SuppressLint("UnsafeOptInUsageError")
     override fun analyze(imageProxy: ImageProxy) {
@@ -27,17 +31,15 @@ class FaceAnalyzer @Inject constructor(private val detector: FaceDetector,privat
                     if (faces.isNotEmpty()) {
                         val userFace = faces.firstOrNull() ?: return@addOnSuccessListener
 
-                        if(user_face_id.name.isEmpty()){
-                            CoroutineScope(Dispatchers.IO).launch {
-                                FaceDataStore.saveFaceId(context, userFace.trackingId!!.toInt())
-                                println("Face:  ${userFace.trackingId}")
-                            }
-                        }else{
-                            //verify
+                        if(faces.size ==1){
+                            detectedFaceCount.value = 1
                         }
 
-                        Log.d("FaceAnalyzer", "Face Registered: ${userFace.trackingId}")
+                        Log.d("FaceAnalyzer", "Face Registered: ${faces.size}")
+                    }else{
+                        _detectedFaceCount.value = 0
                     }
+
                 }
                 .addOnFailureListener { Log.e("FaceAnalyzer", "Face detection failed") }
                 .addOnCompleteListener { imageProxy.close() }
