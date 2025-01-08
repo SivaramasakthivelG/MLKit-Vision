@@ -45,16 +45,17 @@ import kotlinx.coroutines.launch
 import java.io.ByteArrayOutputStream
 import kotlin.math.log
 
+
 @SuppressLint("StateFlowValueCalledInComposition")
 @Composable
 fun FaceDetectionScreen(viewModel: FaceDetectionViewModel, innerPadding: PaddingValues) {
     val context = LocalContext.current
     val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
     val lifecycleOwner = LocalLifecycleOwner.current
-    var scope = rememberCoroutineScope()
+    val scope = rememberCoroutineScope()
 
-    val images = remember { mutableStateOf<List<String>>(emptyList()) }
-
+    var camMode = remember { mutableStateOf(true) }
+    var isFaceCaptured = remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -62,11 +63,10 @@ fun FaceDetectionScreen(viewModel: FaceDetectionViewModel, innerPadding: Padding
             .padding(innerPadding)
             .padding(16.dp)
     ) {
-        // Restrict the AndroidView height with weight
         AndroidView(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(0.5f), // Allocate available space proportionately
+                .weight(0.5f),
             factory = { ctx ->
                 val previewView = PreviewView(ctx)
                 val executor = ContextCompat.getMainExecutor(ctx)
@@ -77,44 +77,44 @@ fun FaceDetectionScreen(viewModel: FaceDetectionViewModel, innerPadding: Padding
                         setSurfaceProvider(previewView.surfaceProvider)
                     }
 
-                    val imageAnalysis = ImageAnalysis.Builder()
-                        .setTargetResolution(Size(previewView.width, previewView.height))
-                        .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                        .build()
+                    if (camMode.value && !isFaceCaptured.value) {
+                        val imageAnalysis = ImageAnalysis.Builder()
+                            .setTargetResolution(Size(previewView.width, previewView.height))
+                            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                            .build()
 
-                    imageAnalysis.setAnalyzer(executor) { imageProxy ->
-                        if (previewView.width > 0 && previewView.height > 0) {
-                            viewModel.startFaceDetection(imageProxy)
+                        imageAnalysis.setAnalyzer(executor) { imageProxy ->
+                            if (previewView.width > 0 && previewView.height > 0) {
+                                viewModel.startFaceDetection(imageProxy)
 
-                            Log.d("Face count", "${viewModel.detectedFaceCount.value} ")
-
-                            if (viewModel.isFaceDetected()) {
-                                val bitmap = imageProxyToBitmap(imageProxy)
-                                bitmap?.let {
-                                    scope.launch {
-                                        FaceDataStore.saveImage(context, it)
-                                    }
+                                // Check if 3 images have been captured
+                                if (viewModel.detectedFaceCount.value >= 3 && !isFaceCaptured.value) {
+                                    isFaceCaptured.value = true
+                                    camMode.value = false
+                                    cameraProvider.unbindAll()
+                                    imageProxy.close()
+                                    Log.d("FaceDetection", "Face captured, camera closed.")
                                 }
+
+                                Log.d("Face count", "${viewModel.detectedFaceCount.value}")
+                            } else {
+                                Log.e("FaceDetectionScreen", "PreviewView width or height is 0")
+                                imageProxy.close()
                             }
-
-                            imageProxy.close()
-
-                        } else {
-                            Log.e("FaceDetectionScreen", "PreviewView width or height is 0")
-                            imageProxy.close()
                         }
-                    }
 
-                    cameraProvider.unbindAll()
-                    try {
-                        cameraProvider.bindToLifecycle(
-                            lifecycleOwner,
-                            CameraSelector.DEFAULT_FRONT_CAMERA,
-                            preview,
-                            imageAnalysis
-                        )
-                    } catch (e: Exception) {
-                        Log.e("FaceDetectionScreen", "Failed to bind camera: ${e.message}")
+                        // Bind camera to lifecycle and start analysis
+                        cameraProvider.unbindAll()
+                        try {
+                            cameraProvider.bindToLifecycle(
+                                lifecycleOwner,
+                                CameraSelector.DEFAULT_FRONT_CAMERA,
+                                preview,
+                                imageAnalysis
+                            )
+                        } catch (e: Exception) {
+                            Log.e("FaceDetectionScreen", "Failed to bind camera: ${e.message}")
+                        }
                     }
                 }, executor)
 
@@ -125,12 +125,11 @@ fun FaceDetectionScreen(viewModel: FaceDetectionViewModel, innerPadding: Padding
         Spacer(modifier = Modifier.height(10.dp))
         Text("Detected Faces: ${viewModel.detectedFaceCount.value}")
 
-
         Button(
             onClick = {
                 scope.launch {
-                    val savedImages = FaceDataStore.getAllImages(context)
-                    Log.d("Image Count", "$savedImages.: ")
+                    // Handle storing the captured images (e.g., saving to local storage or uploading)
+                    Log.d("Added", "Captured Faces: ${viewModel.detectedFaceCount.value}")
                 }
             },
             modifier = Modifier
@@ -140,19 +139,20 @@ fun FaceDetectionScreen(viewModel: FaceDetectionViewModel, innerPadding: Padding
             Text("Register Face")
         }
 
+        Button(
+            onClick = {
+                scope.launch {
+                    FaceDataStore.deleteAllImages(context)
+                    Log.d("Deleted", "FaceCount ${FaceDataStore.getAllImages(context).size} ")
+                }
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp)
+        ) {
+            Text("Delete all faces")
+        }
     }
 }
 
-fun imageProxyToBitmap(imageProxy: ImageProxy): Bitmap? {
-    val planeProxy = imageProxy.planes[0]
-    val buffer = planeProxy.buffer
-    val bytes = ByteArray(buffer.remaining())
-    buffer.get(bytes)
-
-    val yuvImage = YuvImage(bytes, ImageFormat.NV21, imageProxy.width, imageProxy.height, null)
-    val out = ByteArrayOutputStream()
-    yuvImage.compressToJpeg(Rect(0, 0, yuvImage.width, yuvImage.height), 100, out)
-    val imageBytes = out.toByteArray()
-    return BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
-}
 

@@ -48,4 +48,14 @@ object FaceDataStore {
         return imageList
     }
 
+    suspend fun deleteAllImages(context: Context) {
+        try {
+            context.dataStore.edit { preferences ->
+                preferences.clear()
+            }
+        } catch (e: Exception) {
+            Log.e("Deleted", "Failed to delete images: ${e.message}")
+        }
+    }
+
 }

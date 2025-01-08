@@ -41,6 +41,11 @@ android {
     buildFeatures {
         compose = true
     }
+    testOptions {
+        unitTests {
+            this.isIncludeAndroidResources = true
+        }
+    }
 }
 
 dependencies {
@@ -74,6 +79,9 @@ dependencies {
     implementation("com.google.mlkit:face-detection:16.1.7")
     implementation("com.google.android.gms:play-services-mlkit-face-detection:17.1.0")
     implementation("androidx.datastore:datastore-preferences:1.1.1")
+
+    testImplementation("org.robolectric:robolectric:4.10.3")
+    testImplementation("org.mockito:mockito-core:3.12.4")
 
 
 
