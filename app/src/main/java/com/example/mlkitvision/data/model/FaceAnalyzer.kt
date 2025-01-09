@@ -20,7 +20,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.io.ByteArrayOutputStream
-import java.io.IOException
 import javax.inject.Inject
 
 class FaceAnalyzer @Inject constructor(
@@ -36,12 +35,11 @@ class FaceAnalyzer @Inject constructor(
 
     val bitmapList: MutableList<Bitmap> = mutableListOf()
 
-    private var captureCounter = 0
+    var captureCounter = 0
+
     private val captureInterval = 2000L
+    private var isCaptureButtonPressed = false
 
-
-
-    @Override
     @SuppressLint("UnsafeOptInUsageError")
     override fun analyze(imageProxy: ImageProxy) {
         if (_detectedFaceCount.value >= 3 || captureCounter >= 3) {
@@ -65,28 +63,13 @@ class FaceAnalyzer @Inject constructor(
                             val faceBitmap = extractBitmapFromImageProxy(imageProxy)
 
                             faceBitmap?.let { bitmap ->
-                                if (captureCounter < 3) {
-                                    CoroutineScope(Dispatchers.Main).launch {
-                                        delay(captureInterval * captureCounter)
-                                        if (captureCounter < 3) {
-                                            bitmapList.add(bitmap)
-                                            _bitmapList.value = bitmapList
-                                            Toast.makeText(
-                                                context,
-                                                "Image ${captureCounter.plus(1)} Captured",
-                                                Toast.LENGTH_SHORT
-                                            ).show()
-                                            captureCounter++
-                                            Log.d(
-                                                "Image Count",
-                                                "Captured Images: ${bitmapList.size}"
-                                            )
+                                if (captureCounter == 0) {
+                                    captureImage(bitmap)
+                                }
 
-                                            if (captureCounter >= 3) {
-                                                _detectedFaceCount.value = 3
-                                            }
-                                        }
-                                    }
+                                if (isCaptureButtonPressed && captureCounter < 3) {
+                                    captureImage(bitmap)
+                                    isCaptureButtonPressed = false
                                 }
                             }
                         } else {
@@ -99,12 +82,41 @@ class FaceAnalyzer @Inject constructor(
                 }
                 .addOnFailureListener {
                     Log.e("FaceAnalyzer", "Face detection failed")
-                    imageProxy.close()
                 }
                 .addOnCompleteListener {
                     imageProxy.close()
                 }
         }
+    }
+
+    private fun captureImage(bitmap: Bitmap) {
+        if (captureCounter < 3) {
+            CoroutineScope(Dispatchers.Main).launch {
+                delay(captureInterval * captureCounter)
+
+                synchronized(this) {
+                    if (captureCounter < 3) {
+                        bitmapList.add(bitmap)
+                        _bitmapList.value = bitmapList.toList()
+                        captureCounter++
+
+                        Toast.makeText(
+                            context,
+                            "Captured image $captureCounter",
+                            Toast.LENGTH_SHORT
+                        ).show()
+
+                        if (captureCounter >= 3) {
+                            _detectedFaceCount.value = 3
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fun onCaptureButtonPressed() {
+        isCaptureButtonPressed = true
     }
 }
 
