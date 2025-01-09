@@ -19,6 +19,9 @@ class FaceDetectionViewModel @Inject constructor(
     private val faceAnalyzer: FaceAnalyzer,
 ) : ViewModel() {
 
+    val bitmapListFlow = faceAnalyzer.bitmapListFlow
+
+
     private val _detectedFaceCount = faceAnalyzer.detectedFaceCount
     val detectedFaceCount = _detectedFaceCount.asStateFlow()
 

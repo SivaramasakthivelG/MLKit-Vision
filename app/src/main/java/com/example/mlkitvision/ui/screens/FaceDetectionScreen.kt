@@ -1,21 +1,13 @@
 package com.example.mlkitvision.ui.screens
 
 import android.annotation.SuppressLint
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.graphics.ImageFormat
-import android.graphics.Rect
-import android.graphics.YuvImage
 import android.util.Log
 import android.util.Size
-import android.widget.Toast
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
-import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
@@ -23,8 +15,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -37,18 +27,19 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
-import androidx.datastore.preferences.core.edit
+import androidx.navigation.NavHostController
 import com.example.mlkitvision.data.FaceDataStore
 import com.example.mlkitvision.viewmodel.FaceDetectionViewModel
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import java.io.ByteArrayOutputStream
-import kotlin.math.log
 
 
 @SuppressLint("StateFlowValueCalledInComposition")
 @Composable
-fun FaceDetectionScreen(viewModel: FaceDetectionViewModel, innerPadding: PaddingValues) {
+fun FaceDetectionScreen(
+    viewModel: FaceDetectionViewModel,
+    innerPadding: PaddingValues,
+    navController: NavHostController
+) {
     val context = LocalContext.current
     val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -125,25 +116,11 @@ fun FaceDetectionScreen(viewModel: FaceDetectionViewModel, innerPadding: Padding
         Spacer(modifier = Modifier.height(10.dp))
         Text("Detected Faces: ${viewModel.detectedFaceCount.value}")
 
-        Button(
-            onClick = {
-                scope.launch {
-                    // Handle storing the captured images (e.g., saving to local storage or uploading)
-                    Log.d("Added", "Captured Faces: ${viewModel.detectedFaceCount.value}")
-                }
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp)
-        ) {
-            Text("Register Face")
-        }
 
         Button(
             onClick = {
                 scope.launch {
-                    FaceDataStore.deleteAllImages(context)
-                    Log.d("Deleted", "FaceCount ${FaceDataStore.getAllImages(context).size} ")
+                    navController.navigate("listScreen")
                 }
             },
             modifier = Modifier

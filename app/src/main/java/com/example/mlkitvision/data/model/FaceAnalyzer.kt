@@ -31,7 +31,11 @@ class FaceAnalyzer @Inject constructor(
     private val _detectedFaceCount = MutableStateFlow(0)
     val detectedFaceCount = _detectedFaceCount
 
+    private val _bitmapList = MutableStateFlow<List<Bitmap>>(emptyList())
+    val bitmapListFlow = _bitmapList.asStateFlow()
+
     val bitmapList: MutableList<Bitmap> = mutableListOf()
+
     private var captureCounter = 0
     private val captureInterval = 2000L 
 
@@ -61,8 +65,9 @@ class FaceAnalyzer @Inject constructor(
                                     CoroutineScope(Dispatchers.Main).launch {
                                         delay(captureInterval * captureCounter)
                                         bitmapList.add(bitmap)
+                                        _bitmapList.value = bitmapList.toList()
                                         captureCounter++
-                                        Log.d("FaceAnalyzer", "Captured image $captureCounter")
+                                        Toast.makeText(context, "Captured image $captureCounter",Toast.LENGTH_SHORT).show()
 
                                         if (captureCounter >= 3) {
                                             _detectedFaceCount.value = 3

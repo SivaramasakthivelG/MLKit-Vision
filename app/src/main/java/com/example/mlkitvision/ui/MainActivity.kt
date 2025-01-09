@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.ui.Modifier
+import androidx.navigation.compose.rememberNavController
 import com.example.mlkitvision.ui.screens.FaceDetectionScreen
 import com.example.mlkitvision.ui.theme.MLKITVisionTheme
 import com.example.mlkitvision.viewmodel.FaceDetectionViewModel
@@ -30,31 +31,11 @@ class MainActivity : ComponentActivity() {
         setContent {
             MLKITVisionTheme {
                 val viewModel = hiltViewModel<FaceDetectionViewModel>()
+                val navController = rememberNavController()
                 Scaffold(modifier = Modifier.fillMaxSize()) {innerPadding ->
-                    MLKitFaceDetection(viewModel,innerPadding)
+                    SetUpNavGraph(navController = navController,viewModel,innerPadding )
                 }
             }
         }
-    }
-}
-
-@OptIn(ExperimentalPermissionsApi::class)
-@Composable
-fun MLKitFaceDetection(viewModel: FaceDetectionViewModel, innerPadding: PaddingValues) {
-    val cameraPermissionState = rememberPermissionState(permission = android.Manifest.permission.CAMERA)
-
-    PermissionRequired(
-        permissionState = cameraPermissionState,
-        permissionNotGrantedContent = {
-            LaunchedEffect(Unit) {
-                cameraPermissionState.launchPermissionRequest()
-            }
-        },
-        permissionNotAvailableContent = {
-            Column {
-                Text(text = "Camera Permission Denied.")
-            }
-        }) {
-        FaceDetectionScreen(viewModel,innerPadding)
     }
 }
