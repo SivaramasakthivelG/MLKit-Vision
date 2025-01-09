@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.mlkitvision.data.FaceDataStore
 import com.example.mlkitvision.data.model.FaceAnalyzer
+import com.example.mlkitvision.data.model.ImageVerification
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,6 +18,7 @@ import javax.inject.Inject
 @HiltViewModel
 class FaceDetectionViewModel @Inject constructor(
     private val faceAnalyzer: FaceAnalyzer,
+    private val imageVerification: ImageVerification
 ) : ViewModel() {
 
     val bitmapListFlow = faceAnalyzer.bitmapListFlow
@@ -29,7 +31,7 @@ class FaceDetectionViewModel @Inject constructor(
 
     fun startFaceDetection(imageProxy: ImageProxy) {
         viewModelScope.launch {
-            delay(2000)
+            delay(4000)
             faceAnalyzer.analyze(imageProxy)
         }
     }
@@ -42,5 +44,9 @@ class FaceDetectionViewModel @Inject constructor(
         viewModelScope.launch {
             FaceDataStore.saveImage(context, bitmap)
         }
+    }
+
+    fun verifyBitmaps(bitmaps: List<Bitmap>): Boolean {
+        return imageVerification.verifyFaces(bitmaps)
     }
 }

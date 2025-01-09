@@ -11,6 +11,7 @@ import android.util.Log
 import android.widget.Toast
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
+import com.example.mlkitvision.data.FaceDataStore
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.face.FaceDetector
 import kotlinx.coroutines.CoroutineScope
@@ -20,7 +21,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.io.ByteArrayOutputStream
-import java.io.IOException
 import javax.inject.Inject
 
 class FaceAnalyzer @Inject constructor(
@@ -37,22 +37,18 @@ class FaceAnalyzer @Inject constructor(
     val bitmapList: MutableList<Bitmap> = mutableListOf()
 
     private var captureCounter = 0
-    private val captureInterval = 2000L
+    private val captureInterval = 2000L 
 
-
-
-    @Override
     @SuppressLint("UnsafeOptInUsageError")
     override fun analyze(imageProxy: ImageProxy) {
-        if (_detectedFaceCount.value >= 3 || captureCounter >= 3) {
+        if (_detectedFaceCount.value >=3 || captureCounter >= 3) {
             imageProxy.close()
             return
         }
 
         val mediaImage = imageProxy.image
         mediaImage?.let {
-            val inputImage =
-                InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
+            val inputImage = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
 
             detector.process(inputImage)
                 .addOnSuccessListener { faces ->
@@ -68,22 +64,19 @@ class FaceAnalyzer @Inject constructor(
                                 if (captureCounter < 3) {
                                     CoroutineScope(Dispatchers.Main).launch {
                                         delay(captureInterval * captureCounter)
-                                        if (captureCounter < 3) {
-                                            bitmapList.add(bitmap)
-                                            _bitmapList.value = bitmapList
-                                            Toast.makeText(
-                                                context,
-                                                "Image ${captureCounter.plus(1)} Captured",
-                                                Toast.LENGTH_SHORT
-                                            ).show()
-                                            captureCounter++
-                                            Log.d(
-                                                "Image Count",
-                                                "Captured Images: ${bitmapList.size}"
-                                            )
 
-                                            if (captureCounter >= 3) {
-                                                _detectedFaceCount.value = 3
+                                        synchronized(this) {
+                                            if (captureCounter < 3) {
+
+                                                bitmapList.add(bitmap)
+                                                _bitmapList.value = bitmapList.toList()
+                                                captureCounter++
+
+                                                Toast.makeText(context, "Captured image $captureCounter", Toast.LENGTH_SHORT).show()
+
+                                                if (captureCounter >= 3) {
+                                                    _detectedFaceCount.value = 3
+                                                }
                                             }
                                         }
                                     }
@@ -107,7 +100,6 @@ class FaceAnalyzer @Inject constructor(
         }
     }
 }
-
 
 fun extractBitmapFromImageProxy(imageProxy: ImageProxy): Bitmap? {
     val nv21 = yuv420888ToNv21(imageProxy)
