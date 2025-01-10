@@ -6,6 +6,7 @@ This application leverages **ML Kit** and **TensorFlow Lite** for real-time face
 - **Real-Time Detection**: Automatic face detection using ML Kit.
 - **Manual Capture**: Allows users to manually capture up to three faces.
 - **Face Validation**: Ensures accuracy with TensorFlow Lite.
+- **Database**: Room database for local storage
 - **Modern Architecture**: Built with MVVM and Hilt for clean code and scalability.
 - **State-of-the-Art UI**: Developed using Kotlin and Jetpack Compose.
 - **Reliable Testing**: Comprehensive unit tests for `FaceAnalyzer` and utility classes.
