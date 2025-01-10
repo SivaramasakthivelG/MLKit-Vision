@@ -15,6 +15,7 @@ class ImageVerification @Inject constructor(
         private const val INPUT_SIZE = 112
         private const val OUTPUT_SIZE = 192
         private const val THRESHOLD = 80
+        private const val LOW_THRESHOLD = 20
     }
 
     private fun preprocessBitmap(bitmap: Bitmap): ByteBuffer {
@@ -57,7 +58,7 @@ class ImageVerification @Inject constructor(
         for (i in embeddings.indices) {
             for (j in i + 1 until embeddings.size) {
                 val similarity = calculateCosineSimilarity(embeddings[i], embeddings[j])
-                if (similarity > THRESHOLD) {
+                if (similarity > THRESHOLD || similarity < LOW_THRESHOLD) {
                     return false
                 }
             }

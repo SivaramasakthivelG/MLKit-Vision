@@ -16,14 +16,6 @@ fun convertBitmapToByteArray(bitmap: Bitmap): ByteArray {
     return stream.toByteArray()
 }
 
-fun convertByteArrayToBitmap(byteArray: ByteArray): Bitmap {
-    return BitmapFactory.decodeByteArray(byteArray, 0, byteArray.size)
-}
-
-fun ByteArray.toBase64(): String {
-    return android.util.Base64.encodeToString(this, android.util.Base64.DEFAULT)
-}
-
 fun convertBitmapsToByteArrayList(bitmaps: List<Bitmap>): List<ByteArray> {
     return bitmaps.map { bitmap ->
         ByteArrayOutputStream().use { stream ->
@@ -38,7 +30,6 @@ fun saveByteArrayToFile(context: Context, byteArray: ByteArray, fileName: String
     file.writeBytes(byteArray)
     return file.absolutePath
 }
-
 
 fun loadBitmapFromFile(filePath: String): Bitmap? {
     val file = File(filePath)
